@@ -1,0 +1,44 @@
+[package]
+name = "exifnuxt"
+version = "1.0.0"
+description = "Editor metadata EXIF foto untuk desktop: edit per file atau massal"
+authors = [ "Dinar Permadi Yusup" ]
+license = "MIT"
+homepage = "https://permadi.dev"
+repository = "https://github.com/narr07/exifnuxt"
+edition = "2021"
+
+[lib]
+name = "exifnuxt_lib"
+crate-type = [
+  "staticlib",
+  "cdylib",
+  "rlib"
+]
+
+[build-dependencies.tauri-build]
+version = "2.5.3"
+features = [ ]
+
+[dependencies]
+tauri-plugin-shell = "2.3.4"
+tauri-plugin-notification = "2.3.3"
+tauri-plugin-os = "2.3.2"
+tauri-plugin-fs = "2.4.5"
+tauri-plugin-store = "2.4.2"
+serde_json = "1"
+tauri-plugin-dialog = "2.8.1"
+kamadak-exif = "0.6.1"
+little_exif = "0.6.23"
+
+[features]
+default = ["desktop"]
+desktop = ["tauri/tray-icon"]
+
+[dependencies.tauri]
+version = "2.9.5"
+features = ["unstable", "protocol-asset"]
+
+[dependencies.serde]
+version = "1"
+features = [ "derive" ]

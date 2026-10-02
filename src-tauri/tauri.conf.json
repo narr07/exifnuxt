@@ -1,0 +1,62 @@
+{
+	"bundle": {
+		"active": true,
+		"targets": "all",
+		"windows": {
+			"certificateThumbprint": null,
+			"digestAlgorithm": "sha256",
+			"timestampUrl": ""
+		},
+		"icon": [
+			"icons/32x32.png",
+			"icons/128x128.png",
+			"icons/128x128@2x.png",
+			"icons/icon.icns",
+			"icons/icon.ico"
+		],
+		"resources": [],
+		"externalBin": [],
+		"copyright": "© 2026 Dinar Permadi Yusup",
+		"category": "Photography",
+		"shortDescription": "Editor metadata EXIF foto untuk desktop: edit per file atau massal",
+		"longDescription": "ExifNuxt membaca, mengedit, dan menghapus metadata EXIF di JPEG, PNG, WebP, TIFF, HEIC, dan JPEG XL. Edit per file atau beberapa foto sekaligus, salin field seperti lokasi ke foto lain. Dibuat oleh Dinar Permadi Yusup (https://github.com/narr07).",
+		"macOS": {},
+		"linux": {
+			"deb": {}
+		},
+		"publisher": "Dinar Permadi Yusup",
+		"homepage": "https://permadi.dev"
+	},
+	"build": {
+		"beforeBuildCommand": "bun run generate",
+		"frontendDist": "../dist",
+		"beforeDevCommand": "bun run dev",
+		"devUrl": "http://localhost:3000"
+	},
+	"productName": "ExifNuxt",
+	"version": "1.0.0",
+	"identifier": "dev.permadi.exifnuxt",
+	"plugins": {},
+	"app": {
+		"windows": [
+			{
+				"title": "ExifNuxt",
+				"width": 1280,
+				"height": 800,
+				"minWidth": 900,
+				"minHeight": 600,
+				"resizable": true,
+				"fullscreen": false
+			}
+		],
+		"security": {
+			"csp": null,
+			"assetProtocol": {
+				"enable": true,
+				"scope": [
+					"**"
+				]
+			}
+		}
+	}
+}

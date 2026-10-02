@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme {
+	--font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+	--font-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+/* Amber 500 under white text is ~2:1, so light mode uses 700 to stay above WCAG AA */
+:root {
+	--ui-primary: var(--ui-color-primary-700);
+}
+
+.dark {
+	--ui-primary: var(--ui-color-primary-400);
+}
+
+@layer base {
+	html {
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	img {
+		user-select: none;
+		-webkit-user-drag: none;
+	}
+}
