@@ -1,6 +1,7 @@
 import process from "node:process";
 
 const host = process.env.TAURI_DEV_HOST;
+const baseURL = process.env.NUXT_APP_BASE_URL || "/";
 
 export default defineNuxtConfig({
 	modules: [
@@ -11,13 +12,20 @@ export default defineNuxtConfig({
 		"@nuxt/eslint"
 	],
 	app: {
+		baseURL,
 		head: {
-			title: "ExifNuxt",
+			title: "ExifNuxt · Editor Metadata EXIF Foto Desktop",
 			charset: "utf-8",
-			viewport: "width=device-width, initial-scale=1",
+			viewport: "width=device-width, initial-scale=1, maximum-scale=1",
 			meta: [
 				{ name: "format-detection", content: "no" },
-				{ name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1" }
+				{ name: "description", content: "Editor metadata EXIF foto untuk desktop dan web: edit per file atau massal, bersihkan EXIF untuk privasi, salin grup lokasi dan kamera." },
+				{ name: "theme-color", content: "#141210" }
+			],
+			link: [
+				{ rel: "icon", type: "image/svg+xml", href: `${baseURL}favicon.svg` },
+				{ rel: "alternate icon", type: "image/svg+xml", href: `${baseURL}logo.svg` },
+				{ rel: "apple-touch-icon", href: `${baseURL}logo.svg` }
 			]
 		}
 	},

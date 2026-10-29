@@ -1,13 +1,21 @@
 <template>
 	<aside class="flex h-full flex-col border-r border-default bg-muted/40">
 		<div class="flex items-center justify-between gap-2 px-4 pb-3 pt-4">
-			<h1 class="text-base font-semibold tracking-tight">
-				ExifNuxt
-			</h1>
-			<UColorModeButton size="sm" />
+			<NuxtLink to="/" class="flex items-center gap-2.5 outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md">
+				<ExifLogo class="size-6 shadow-sm" />
+				<div>
+					<h1 class="text-sm font-semibold tracking-tight leading-none">
+						ExifNuxt
+					</h1>
+					<span class="text-[10px] text-muted font-mono">v1.0.0</span>
+				</div>
+			</NuxtLink>
+			<div class="flex items-center gap-1">
+				<UColorModeButton size="sm" />
+			</div>
 		</div>
 
-		<div class="px-3 pb-3">
+		<div class="px-3 pb-3 space-y-2">
 			<UButton
 				block
 				variant="outline"
@@ -38,8 +46,8 @@
 			</UButton>
 		</div>
 
-		<p v-if="!photos.length" class="px-4 py-2 text-sm text-muted">
-			Foto yang Anda buka akan muncul di sini.
+		<p v-if="!photos.length" class="px-4 py-4 text-xs text-muted leading-relaxed">
+			Foto yang Anda buka akan muncul di sini. Buka foto atau seret langsung ke jendela ini.
 		</p>
 
 		<ul v-else class="flex-1 space-y-px overflow-y-auto px-2 py-2" aria-label="Daftar foto">
@@ -108,6 +116,11 @@
 				/>
 			</li>
 		</ul>
+
+		<div v-if="photos.length" class="border-t border-default p-2 flex items-center justify-between text-xs text-muted">
+			<span class="font-mono tabular-nums">{{ photos.length }} foto</span>
+			<span class="text-[11px] font-mono">↑ / ↓ Navigasi</span>
+		</div>
 	</aside>
 </template>
 

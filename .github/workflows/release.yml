@@ -1,9 +1,13 @@
-name: release
+name: Release Build
 
 on:
   push:
     branches:
       - release
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
 jobs:
   publish-tauri:
     permissions:
@@ -12,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest # Arm based macs
+          - platform: macos-latest # Arm based macs (Apple Silicon)
             args: --target aarch64-apple-darwin
           - platform: macos-latest # Intel based macs
             args: --target x86_64-apple-darwin
@@ -25,39 +29,49 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: setup node
+      - name: Setup node
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
 
-      - name: install Rust stable
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
-      - name: install dependencies (ubuntu only)
+      - name: Install dependencies (Ubuntu only)
         if: matrix.platform == 'ubuntu-22.04'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-        # webkitgtk 4.0 is for Tauri v1 - webkitgtk 4.1 is for Tauri v2.
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
-      - name: Setup bun
+      - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.5
+          bun-version: 1.3.6
 
-      - name: install frontend dependencies
+      - name: Install frontend dependencies
         run: bun install
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: Build and Publish Tauri App
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: exifnuxt-v__VERSION__
+          tagName: v__VERSION__
           releaseName: ExifNuxt v__VERSION__
-          releaseBody: After installing the Apple app you have to run "xattr -c /Applications/ExifNuxt.app" once before launching
+          releaseBody: |
+            ### ExifNuxt v__VERSION__
+
+            Editor metadata EXIF foto desktop untuk fotografer: edit per file atau massal, bersihkan data privasi, dan salin grup field.
+
+            #### Catatan Pemasangan:
+            - **Windows**: Jalankan installer `.exe` atau jalankan binary portable.
+            - **macOS**: Buka file `.dmg`. Jika muncul peringatan keamanan macOS Gatekeeper, jalankan:
+              ```bash
+              xattr -c /Applications/ExifNuxt.app
+              ```
+            - **Linux**: Tersedia paket `.deb` dan `.AppImage`.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

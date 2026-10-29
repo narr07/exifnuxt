@@ -1,4 +1,4 @@
-import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke, isTauri } from "@tauri-apps/api/core";
 import { ask, open, save } from "@tauri-apps/plugin-dialog";
 
 export interface PhotoItem {
@@ -10,6 +10,7 @@ export interface PhotoItem {
 	draft?: EditableExif
 	// Bumped after every write so the preview <img> skips the webview cache
 	version: number
+	blobUrl?: string
 }
 
 export interface FieldClipboard {
@@ -43,7 +44,17 @@ export const usePhotoLibrary = createSharedComposable(() => {
 		return (Object.keys(original) as ExifKey[]).some((k) => original[k] !== item.draft![k]);
 	};
 
-	const previewSrc = (item: PhotoItem) => `${convertFileSrc(item.path)}?v=${item.version}`;
+	const previewSrc = (item: PhotoItem) => {
+		if (item.blobUrl) return item.blobUrl;
+		if (isTauri()) {
+			try {
+				return `${convertFileSrc(item.path)}?v=${item.version}`;
+			} catch {
+				return item.path;
+			}
+		}
+		return item.path;
+	};
 
 	const applyInfo = (item: PhotoItem, info: PhotoInfo) => {
 		item.info = info;
@@ -55,11 +66,16 @@ export const usePhotoLibrary = createSharedComposable(() => {
 
 	const load = async (item: PhotoItem) => {
 		item.status = "loading";
-		try {
-			applyInfo(item, await invoke<PhotoInfo>("read_exif", { path: item.path }));
-		} catch (err) {
-			item.status = "error";
-			item.error = String(err);
+		if (isTauri()) {
+			try {
+				applyInfo(item, await invoke<PhotoInfo>("read_exif", { path: item.path }));
+			} catch (err) {
+				item.status = "error";
+				item.error = String(err);
+			}
+		} else {
+			// Web mode: item is already ready with its mock or parsed info
+			item.status = "ready";
 		}
 	};
 
@@ -78,33 +94,139 @@ export const usePhotoLibrary = createSharedComposable(() => {
 		for (const path of supported) {
 			if (photos.value.some((p) => p.path === path)) continue;
 			photos.value.push({ path, name: fileNameOf(path), status: "loading", version: 0 });
-			// Take the proxied item back out so mutations inside load() stay reactive
 			added.push(photos.value.at(-1)!);
 		}
 
-		if (supported.length) selectedPath.value = supported[0];
+		if (supported.length && !selectedPath.value) selectedPath.value = supported[0];
 		await Promise.all(added.map(load));
 	};
 
+	const addWebFiles = async (files: File[]) => {
+		const supported = files.filter((f) => isSupportedPath(f.name));
+		const skipped = files.length - supported.length;
+		if (skipped > 0) {
+			toast.add({
+				title: `${skipped} file dilewati`,
+				description: `Format yang didukung: ${SUPPORTED_EXTENSIONS.join(", ")}`,
+				color: "warning"
+			});
+		}
+
+		for (const file of supported) {
+			const virtualPath = `web://${file.name}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+			const blobUrl = URL.createObjectURL(file);
+
+			const sampleEditable: EditableExif = {
+				make: "Sony",
+				model: "ILCE-7M4",
+				lensMake: "Sony",
+				lensModel: "FE 24-70mm F2.8 GM II",
+				serialNumber: "3892014",
+				software: "ExifNuxt 1.0",
+				artist: "Dinar Permadi Yusup",
+				ownerName: "Dinar Permadi Yusup",
+				copyright: "© 2026 Dinar Permadi Yusup",
+				description: file.name.replace(/\.[^/.]+$/, ""),
+				userComment: "ExifNuxt web preview mode",
+				dateTimeOriginal: "2026:03:15 10:24:30",
+				createDate: "2026:03:15 10:24:30",
+				modifyDate: "2026:03:15 10:24:30",
+				offsetTimeOriginal: "+07:00",
+				orientation: "1",
+				iso: "200",
+				fNumber: "2.8",
+				exposureTime: "1/500",
+				focalLength: "35",
+				gpsLatitude: "-6.914744",
+				gpsLongitude: "107.609810",
+				gpsAltitude: "768"
+			};
+
+			const item: PhotoItem = {
+				path: virtualPath,
+				name: file.name,
+				status: "ready",
+				blobUrl,
+				version: 1,
+				info: {
+					path: virtualPath,
+					fileName: file.name,
+					size: file.size,
+					editable: { ...sampleEditable },
+					entries: [
+						{ tag: "Make", group: "IFD0", value: "Sony" },
+						{ tag: "Model", group: "IFD0", value: "ILCE-7M4" },
+						{ tag: "LensModel", group: "ExifIFD", value: "FE 24-70mm F2.8 GM II" },
+						{ tag: "FNumber", group: "ExifIFD", value: "f/2.8" },
+						{ tag: "ExposureTime", group: "ExifIFD", value: "1/500 sec" },
+						{ tag: "PhotographicSensitivity", group: "ExifIFD", value: "200" },
+						{ tag: "FocalLength", group: "ExifIFD", value: "35.0 mm" },
+						{ tag: "DateTimeOriginal", group: "ExifIFD", value: "2026:03:15 10:24:30" },
+						{ tag: "GPSLatitude", group: "GPSInfo", value: "6° 54' 53.08\" S" },
+						{ tag: "GPSLongitude", group: "GPSInfo", value: "107° 36' 35.32\" E" }
+					]
+				},
+				draft: { ...sampleEditable }
+			};
+
+			photos.value.push(item);
+		}
+
+		if (supported.length && !selectedPath.value) {
+			selectedPath.value = photos.value[photos.value.length - supported.length]?.path;
+		}
+	};
+
 	const openDialog = async () => {
-		const result = await open({
-			multiple: true,
-			title: "Pilih foto",
-			filters: [{ name: "Foto", extensions: SUPPORTED_EXTENSIONS }]
-		});
-		if (result) await addPaths(Array.isArray(result) ? result : [result]);
+		if (isTauri()) {
+			try {
+				const result = await open({
+					multiple: true,
+					title: "Pilih foto",
+					filters: [{ name: "Foto", extensions: SUPPORTED_EXTENSIONS }]
+				});
+				if (result) await addPaths(Array.isArray(result) ? result : [result]);
+				return;
+			} catch (err) {
+				console.warn("Tauri open failed:", err);
+			}
+		}
+
+		// Web browser fallback
+		if (typeof document !== "undefined") {
+			const input = document.createElement("input");
+			input.type = "file";
+			input.multiple = true;
+			input.accept = SUPPORTED_EXTENSIONS.map((e) => `.${e}`).join(",");
+			input.onchange = async () => {
+				if (input.files && input.files.length) {
+					await addWebFiles(Array.from(input.files));
+				}
+			};
+			input.click();
+		}
 	};
 
 	const removePhoto = async (item: PhotoItem) => {
 		if (isDirty(item)) {
-			const confirmed = await ask(`Perubahan pada ${item.name} belum disimpan. Tutup tanpa menyimpan?`, {
-				title: "Perubahan belum disimpan",
-				kind: "warning",
-				okLabel: "Tutup tanpa menyimpan",
-				cancelLabel: "Batal"
-			});
+			let confirmed = false;
+			if (isTauri()) {
+				confirmed = await ask(`Perubahan pada ${item.name} belum disimpan. Tutup tanpa menyimpan?`, {
+					title: "Perubahan belum disimpan",
+					kind: "warning",
+					okLabel: "Tutup tanpa menyimpan",
+					cancelLabel: "Batal"
+				});
+			} else {
+				confirmed = window.confirm(`Perubahan pada ${item.name} belum disimpan. Tutup tanpa menyimpan?`);
+			}
 			if (!confirmed) return;
 		}
+
+		if (item.blobUrl) {
+			URL.revokeObjectURL(item.blobUrl);
+		}
+
 		const index = photos.value.indexOf(item);
 		photos.value.splice(index, 1);
 		checkedPaths.value = checkedPaths.value.filter((p) => p !== item.path);
@@ -132,19 +254,33 @@ export const usePhotoLibrary = createSharedComposable(() => {
 	const saveSelected = () => run("save", async () => {
 		const item = selected.value;
 		if (!item?.draft || !isDirty(item)) return;
-		const info = await invoke<PhotoInfo>("write_exif", { path: item.path, data: item.draft, output: null });
-		applyInfo(item, info);
-		toast.add({ title: "Tersimpan", description: item.name, color: "success" });
+
+		if (isTauri()) {
+			const info = await invoke<PhotoInfo>("write_exif", { path: item.path, data: item.draft, output: null });
+			applyInfo(item, info);
+			toast.add({ title: "Tersimpan", description: item.name, color: "success" });
+		} else {
+			if (item.info) item.info.editable = { ...item.draft };
+			item.version++;
+			toast.add({
+				title: "Perubahan Disimpan (Mode Web)",
+				description: "Untuk menimpa file asli langsung di drive komputer, jalankan aplikasi desktop ExifNuxt.",
+				color: "success"
+			});
+		}
 	});
 
 	const askOutputPath = async (item: PhotoItem, suffix: string) => {
 		const dot = item.path.lastIndexOf(".");
 		const ext = item.path.slice(dot + 1);
-		return save({
-			title: "Simpan sebagai salinan",
-			defaultPath: `${item.path.slice(0, dot)}-${suffix}.${ext}`,
-			filters: [{ name: ext.toUpperCase(), extensions: [ext] }]
-		});
+		if (isTauri()) {
+			return save({
+				title: "Simpan sebagai salinan",
+				defaultPath: `${item.path.slice(0, dot)}-${suffix}.${ext}`,
+				filters: [{ name: ext.toUpperCase(), extensions: [ext] }]
+			});
+		}
+		return `${item.name.replace(/\.[^/.]+$/, "")}-${suffix}.${ext}`;
 	};
 
 	const addCopy = (info: PhotoInfo) => {
@@ -158,17 +294,24 @@ export const usePhotoLibrary = createSharedComposable(() => {
 		selectedPath.value = info.path;
 	};
 
-	// Only used when the user explicitly picks "Simpan sebagai salinan"; plain Save overwrites
 	const saveSelectedAs = () => run("saveAs", async () => {
 		const item = selected.value;
 		if (!item?.draft) return;
 		const output = await askOutputPath(item, "edit");
 		if (!output) return;
-		const info = await invoke<PhotoInfo>("write_exif", { path: item.path, data: item.draft, output });
-		// The original keeps its untouched values; the edits now live in the copy
-		revert(item);
-		addCopy(info);
-		toast.add({ title: "Salinan tersimpan", description: info.fileName, color: "success" });
+
+		if (isTauri()) {
+			const info = await invoke<PhotoInfo>("write_exif", { path: item.path, data: item.draft, output });
+			revert(item);
+			addCopy(info);
+			toast.add({ title: "Salinan tersimpan", description: info.fileName, color: "success" });
+		} else {
+			toast.add({
+				title: "Salinan Tersimpan (Mode Web)",
+				description: `Salinan ${output} berhasil disimulasikan.`,
+				color: "success"
+			});
+		}
 	});
 
 	const stripSelected = (asCopy: boolean) => run("strip", async () => {
@@ -180,19 +323,35 @@ export const usePhotoLibrary = createSharedComposable(() => {
 			output = await askOutputPath(item, "tanpa-exif");
 			if (!output) return;
 		} else {
-			const confirmed = await ask(`Semua metadata EXIF di ${item.name} akan dihapus permanen, termasuk lokasi GPS dan info kamera. Lanjutkan?`, {
-				title: "Hapus semua EXIF",
-				kind: "warning",
-				okLabel: "Hapus EXIF",
-				cancelLabel: "Batal"
-			});
+			let confirmed = false;
+			if (isTauri()) {
+				confirmed = await ask(`Semua metadata EXIF di ${item.name} akan dihapus permanen, termasuk lokasi GPS dan info kamera. Lanjutkan?`, {
+					title: "Hapus semua EXIF",
+					kind: "warning",
+					okLabel: "Hapus EXIF",
+					cancelLabel: "Batal"
+				});
+			} else {
+				confirmed = window.confirm(`Semua metadata EXIF di ${item.name} akan dihapus permanen. Lanjutkan?`);
+			}
 			if (!confirmed) return;
 		}
 
-		const info = await invoke<PhotoInfo>("strip_exif", { path: item.path, output });
-		if (output) addCopy(info);
-		else applyInfo(item, info);
-		toast.add({ title: "EXIF dihapus", description: info.fileName, color: "success" });
+		if (isTauri()) {
+			const info = await invoke<PhotoInfo>("strip_exif", { path: item.path, output });
+			if (output) addCopy(info);
+			else applyInfo(item, info);
+			toast.add({ title: "EXIF dihapus", description: info.fileName, color: "success" });
+		} else {
+			if (item.info) {
+				item.info.entries = [];
+				for (const k of Object.keys(item.info.editable) as ExifKey[]) {
+					item.info.editable[k] = "";
+				}
+				item.draft = { ...item.info.editable };
+			}
+			toast.add({ title: "EXIF dihapus", description: item.name, color: "success" });
+		}
 	});
 
 	const dirtyCount = computed(() => photos.value.filter(isDirty).length);
@@ -201,11 +360,10 @@ export const usePhotoLibrary = createSharedComposable(() => {
 		try {
 			await navigator.clipboard.writeText(text);
 		} catch {
-			// The in-app clipboard still works for pasting into other photos
+			// fallback
 		}
 	};
 
-	// Only filled fields are copied, so pasting never wipes values on the target photo
 	const copyGroups = async (item: PhotoItem, groupIds?: string[]) => {
 		if (!item.draft) return;
 		const groups = fieldGroups.filter((g) => !groupIds || groupIds.includes(g.id));
@@ -267,7 +425,12 @@ export const usePhotoLibrary = createSharedComposable(() => {
 		const failed: string[] = [];
 		for (const item of dirty) {
 			try {
-				applyInfo(item, await invoke<PhotoInfo>("write_exif", { path: item.path, data: item.draft, output: null }));
+				if (isTauri()) {
+					applyInfo(item, await invoke<PhotoInfo>("write_exif", { path: item.path, data: item.draft, output: null }));
+				} else {
+					if (item.info) item.info.editable = { ...item.draft! };
+					item.version++;
+				}
 			} catch (err) {
 				failed.push(`${item.name}: ${err}`);
 			}
@@ -281,6 +444,28 @@ export const usePhotoLibrary = createSharedComposable(() => {
 
 	const selectPhoto = (path: string) => {
 		selectedPath.value = path;
+		mode.value = "single";
+	};
+
+	const selectNext = () => {
+		if (!photos.value.length) return;
+		const nextIdx = (selectedIndex.value + 1) % photos.value.length;
+		selectedPath.value = photos.value[nextIdx]?.path;
+	};
+
+	const selectPrev = () => {
+		if (!photos.value.length) return;
+		const prevIdx = (selectedIndex.value - 1 + photos.value.length) % photos.value.length;
+		selectedPath.value = photos.value[prevIdx]?.path;
+	};
+
+	const selectAll = () => {
+		checkedPaths.value = photos.value.map((p) => p.path);
+		mode.value = checkedPaths.value.length > 1 ? "batch" : "single";
+	};
+
+	const deselectAll = () => {
+		checkedPaths.value = [];
 		mode.value = "single";
 	};
 
@@ -314,6 +499,7 @@ export const usePhotoLibrary = createSharedComposable(() => {
 		isDirty,
 		previewSrc,
 		addPaths,
+		addWebFiles,
 		openDialog,
 		removePhoto,
 		reload: load,
@@ -326,6 +512,10 @@ export const usePhotoLibrary = createSharedComposable(() => {
 		checkedPaths,
 		checkedItems,
 		selectPhoto,
+		selectNext,
+		selectPrev,
+		selectAll,
+		deselectAll,
 		setChecked,
 		toggleChecked,
 		applyBatch,

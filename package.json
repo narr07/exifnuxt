@@ -15,6 +15,7 @@
 	"scripts": {
 		"dev": "nuxt dev",
 		"generate": "nuxt generate",
+		"icon": "tauri icon app-icon.svg",
 		"preinstall": "npx only-allow bun",
 		"postinstall": "nuxt prepare",
 		"lint": "eslint . --fix",

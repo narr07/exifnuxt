@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <!-- Darkroom Base Surface -->
+    <linearGradient id="frameGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#262320" />
+      <stop offset="100%" stop-color="#141210" />
+    </linearGradient>
+
+    <!-- Safelight Amber Core -->
+    <linearGradient id="safelightAmber" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="60%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+
+    <!-- Aperture Blade Shading -->
+    <linearGradient id="bladeGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38332e" />
+      <stop offset="100%" stop-color="#201c18" />
+    </linearGradient>
+    <linearGradient id="bladeGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2d2824" />
+      <stop offset="100%" stop-color="#191614" />
+    </linearGradient>
+
+    <!-- Metallic Outer Bezel -->
+    <linearGradient id="bezelRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60574f" />
+      <stop offset="40%" stop-color="#3a342e" />
+      <stop offset="80%" stop-color="#1c1916" />
+      <stop offset="100%" stop-color="#4a423a" />
+    </linearGradient>
+
+    <!-- Coated Optical Lens Coating -->
+    <linearGradient id="lensCoating" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35" />
+      <stop offset="40%" stop-color="#fbbf24" stop-opacity="0.12" />
+      <stop offset="80%" stop-color="#3b82f6" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- 1. Outer Darkroom Film Negative Housing -->
+  <rect x="28" y="28" width="456" height="456" rx="96" fill="url(#frameGrad)" stroke="#443c35" stroke-width="4" />
+
+  <!-- 35mm Film Registration Index Notches -->
+  <g fill="#201c19">
+    <rect x="68" y="44" width="20" height="12" rx="3" />
+    <rect x="108" y="44" width="20" height="12" rx="3" />
+    <rect x="384" y="44" width="20" height="12" rx="3" />
+    <rect x="424" y="44" width="20" height="12" rx="3" />
+
+    <rect x="68" y="456" width="20" height="12" rx="3" />
+    <rect x="108" y="456" width="20" height="12" rx="3" />
+    <rect x="384" y="456" width="20" height="12" rx="3" />
+    <rect x="424" y="456" width="20" height="12" rx="3" />
+  </g>
+
+  <!-- 2. Camera Lens Barrel -->
+  <circle cx="256" cy="256" r="176" fill="url(#bezelRing)" stroke="#1a1714" stroke-width="6" />
+  <circle cx="256" cy="256" r="154" fill="#13110f" stroke="#786c5e" stroke-width="2" />
+
+  <!-- Lens Index Guide Marks -->
+  <g stroke="#786c5e" stroke-width="3" stroke-linecap="round">
+    <line x1="256" y1="84" x2="256" y2="94" />
+    <line x1="377" y1="135" x2="370" y2="142" />
+    <line x1="428" y1="256" x2="418" y2="256" />
+    <line x1="377" y1="377" x2="370" y2="370" />
+    <line x1="256" y1="428" x2="256" y2="418" />
+    <line x1="135" y1="377" x2="142" y2="370" />
+    <line x1="84" y1="256" x2="94" y2="256" />
+    <line x1="135" y1="135" x2="142" y2="142" />
+  </g>
+
+  <!-- 3. Mechanical Aperture Blades -->
+  <g id="apertureBlades">
+    <path d="M 256 112 L 344 184 L 272 268 L 192 196 Z" fill="url(#bladeGrad1)" stroke="#171412" stroke-width="2.5" />
+    <path d="M 380 184 L 400 292 L 312 308 L 292 200 Z" fill="url(#bladeGrad2)" stroke="#171412" stroke-width="2.5" />
+    <path d="M 380 328 L 312 400 L 240 316 L 308 244 Z" fill="url(#bladeGrad1)" stroke="#171412" stroke-width="2.5" />
+    <path d="M 256 400 L 168 328 L 240 244 L 328 316 Z" fill="url(#bladeGrad2)" stroke="#171412" stroke-width="2.5" />
+    <path d="M 132 328 L 112 220 L 200 204 L 220 312 Z" fill="url(#bladeGrad1)" stroke="#171412" stroke-width="2.5" />
+    <path d="M 132 184 L 200 112 L 272 196 L 204 268 Z" fill="url(#bladeGrad2)" stroke="#171412" stroke-width="2.5" />
+  </g>
+
+  <!-- 4. Central Aperture Chamber with EX Monogram -->
+  <circle cx="256" cy="256" r="82" fill="#0c0a09" stroke="url(#safelightAmber)" stroke-width="5" />
+
+  <path d="M 204 220 H 236" stroke="#fbbf24" stroke-width="8" stroke-linecap="round" />
+  <path d="M 204 256 H 228" stroke="#fbbf24" stroke-width="8" stroke-linecap="round" />
+  <path d="M 204 292 H 236" stroke="#fbbf24" stroke-width="8" stroke-linecap="round" />
+  <path d="M 204 218 V 294" stroke="#fbbf24" stroke-width="8" stroke-linecap="round" />
+
+  <path d="M 264 220 L 308 292" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" />
+  <path d="M 308 220 L 264 292" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" />
+
+  <circle cx="256" cy="190" r="5" fill="#fbbf24" />
+  <circle cx="256" cy="322" r="5" fill="#d97706" />
+
+  <!-- 5. Optical Lens Flare Reflection Arc -->
+  <path d="M 138 200 A 140 140 0 0 1 336 132" stroke="url(#lensCoating)" stroke-width="16" stroke-linecap="round" />
+  <circle cx="348" cy="144" r="5" fill="#ffffff" fill-opacity="0.6" />
+</svg>
+

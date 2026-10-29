@@ -152,3 +152,18 @@ export const inputToExifDate = (value: string) => {
 };
 
 export const frameNumber = (index: number) => String(index + 1).padStart(2, "0");
+
+
+export const parseCoordinates = (input: string): { lat: string; lon: string } | null => {
+	const trimmed = input.trim();
+	if (!trimmed) return null;
+	const parts = trimmed.split(/[,;\t\n]+/).map((s) => s.trim()).filter(Boolean);
+	if (parts.length >= 2) {
+		const lat = Number.parseFloat(parts[0]);
+		const lon = Number.parseFloat(parts[1]);
+		if (!Number.isNaN(lat) && !Number.isNaN(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
+			return { lat: String(lat), lon: String(lon) };
+		}
+	}
+	return null;
+};

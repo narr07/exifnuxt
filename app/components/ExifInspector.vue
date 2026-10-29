@@ -102,6 +102,17 @@
 								Lihat di peta
 							</UButton>
 							<UButton
+								v-if="group.id === 'location'"
+								size="xs"
+								color="neutral"
+								variant="ghost"
+								icon="i-ph-clipboard"
+								title="Tempel dari koordinat Lat, Long di clipboard"
+								@click="pasteCoordinatesFromClipboard"
+							>
+								Tempel Lat, Long
+							</UButton>
+							<UButton
 								v-if="group.id === 'location' && hasLocation"
 								size="xs"
 								color="error"
@@ -224,6 +235,7 @@
 
 <script lang="ts" setup>
 	import type { DropdownMenuItem } from "@nuxt/ui";
+	import { isTauri } from "@tauri-apps/api/core";
 	import { open } from "@tauri-apps/plugin-shell";
 
 	const props = defineProps<{
@@ -249,6 +261,7 @@
 		clearClipboard
 	} = usePhotoLibrary();
 
+	const toast = useToast();
 	const tab = ref<"edit" | "all">("edit");
 	const query = ref("");
 
@@ -291,9 +304,34 @@
 
 	const hasLocation = computed(() => Boolean(props.item.draft?.gpsLatitude && props.item.draft?.gpsLongitude));
 
-	const openMap = () => {
+	const openMap = async () => {
 		const { gpsLatitude: lat, gpsLongitude: lon } = props.item.draft!;
-		open(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=15/${lat}/${lon}`);
+		const url = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=15/${lat}/${lon}`;
+		if (isTauri()) {
+			try {
+				await open(url);
+				return;
+			} catch (e) {
+				console.warn("Tauri open map failed:", e);
+			}
+		}
+		window.open(url, "_blank");
+	};
+
+	const pasteCoordinatesFromClipboard = async () => {
+		try {
+			const text = await navigator.clipboard.readText();
+			const coords = parseCoordinates(text);
+			if (coords) {
+				draft.value.gpsLatitude = coords.lat;
+				draft.value.gpsLongitude = coords.lon;
+				toast.add({ title: "Koordinat Ditempel", description: `Lat: ${coords.lat}, Lon: ${coords.lon}` });
+			} else {
+				toast.add({ title: "Format tidak sesuai", description: "Contoh format: -6.914744, 107.609810", color: "warning" });
+			}
+		} catch {
+			toast.add({ title: "Gagal membaca clipboard", color: "error" });
+		}
 	};
 
 	const clearLocation = () => {
