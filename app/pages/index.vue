@@ -1,6 +1,6 @@
 <template>
 	<!-- When running inside Tauri desktop app, render the desktop editor directly -->
-	<PhotoEditorWorkspace v-if="isTauriApp" class="h-screen w-screen" />
+	<PhotoEditorWorkspace v-if="isTauriApp" class="h-screen w-screen overflow-hidden" />
 
 	<!-- When running in web browser (e.g. GitHub Pages), render the marketing & documentation website -->
 	<div v-else class="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/20 selection:text-primary">
